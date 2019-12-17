@@ -18,6 +18,8 @@ def parse(year, vote):
     payload = "{}"
     response = requests.request("GET", get_url + sort + "vote_count.desc" + page + str(1) + prime_year + str(year)
                                 + vote_count + str(vote), data=payload)
+    print(get_url + sort + "vote_count.desc" + page + str(1) + prime_year + str(year) + vote_count + str(vote))
+    print(response.content)
     time.sleep(0.25)
     file = response.json()
     total_pages = file["total_pages"]

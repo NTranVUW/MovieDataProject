@@ -1,49 +1,29 @@
+from bs4 import BeautifulSoup
+import requests
+
+
 class Movie:
-    def __init__(self, title):
+    def __init__(self, title, wiki_link):
         self.title = title
-        self.tmdb_id = None
-        self.popularity = None
-        self.vote_count = None
-        self.original_language = None
-        self.original_title = None
-        self.genre_ids = None
-        self.vote_average = None
-        self.overview = None
-        self.release_date = None
+        self.wiki_link = wiki_link
+        self.imdb_link = None
+        self.metacritic_link = None
+        self.rottentomatoes_link = None
+        self.boxofficemofo_link = None
 
-    def set_tmdb_id(self, tmdb_id):
-        self.tmdb_id = tmdb_id
-        return self
-
-    def set_popularity(self, pop):
-        self.popularity = pop
-        return self
-
-    def set_vote_count(self, vote):
-        self.vote_count = vote
-        return self
-
-    def set_original_language(self, lang):
-        self.original_language = lang
-        return self
-
-    def set_original_title(self, title):
-        self.original_title = title
-        return self
-
-    def set_genre_ids(self, ids):
-        self.genre_ids = ids
-        return self
-
-    def set_vote_average(self, vote):
-        self.vote_average = vote
-        return self
-
-    def set_overview(self, overview):
-        self.overview = overview
-        return self
-
-    def set_release_date(self, date):
-        self.release_date = date
-        return self
-
+    def get_wiki_external_links(self):
+        url = "https://en.wikipedia.org" + self.wiki_link
+        req = requests.get(url).text
+        soup = BeautifulSoup(req, 'html.parser')
+        for item in soup.find_all('a', class_="external text"):
+            site = item['href']
+            site_name = site.split('.')[1]
+            if site_name == "imdb":
+                self.imdb_link = site
+            elif site_name == "metacritic":
+                self.metacritic_link = site
+                print(site)
+            elif site_name == "rottentomatoes":
+                self.rottentomatoes_link = site
+            elif site_name == "boxofficemojo":
+                self.boxofficemofo_link = site
