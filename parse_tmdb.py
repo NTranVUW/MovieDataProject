@@ -1,7 +1,7 @@
 import requests
 import json
 import time
-import movie
+import movie_data
 
 url = "https://api.themoviedb.org/3"
 discover = "/discover/movie"
@@ -36,7 +36,7 @@ def parse(year, vote):
 def parse_json(file, movies):
     results = file["results"]
     for r in results:
-        mov = movie.Movie(r["title"])
+        mov = movie_data.Movie(r["title"])
         mov.set_tmdb_id(r["id"])\
             .set_popularity(r["popularity"])\
             .set_vote_count(r["vote_count"])\
