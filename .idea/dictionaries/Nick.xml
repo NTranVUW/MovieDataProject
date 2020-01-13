@@ -9,8 +9,10 @@
       <w>metacritic</w>
       <w>rottentomatoes</w>
       <w>sitename</w>
+      <w>tablesorter</w>
       <w>tmdb</w>
       <w>wikipedia</w>
+      <w>wikitable</w>
     </words>
   </dictionary>
 </component>

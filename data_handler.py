@@ -1,41 +1,42 @@
-import movie_lister2
+from boxofficemojo_handler import BoxOfficeMojo
+from imdb_handler import IMDB
+from metacrtic_handler import Metacritic
+from rotten_tomatoes_handler import RottenTomatoes
 
 
 class DataContainer:
     def __init__(self, wikipedia_link):
-        self.wikipedia_link = wikipedia_link
         self.imdb = None
         self.metacritic = None
         self.rotten_tomatoes = None
         self.boxofficemojo = None
-        self.get_wikipedia_external_links()
+        self.get_wikipedia_external_links(wikipedia_link)
 
     # <a rel="nofollow" class="external text" href="https://www.sitename.com/foo/"><i>Name Of The Movie</i></a>
-    def get_wikipedia_external_links(self):
-        connection = movie_lister2.open_connection(self.wikipedia_link)
+    def get_wikipedia_external_links(self, wikipedia_link):
+        from movie_lister import open_connection
+        connection = open_connection(wikipedia_link)
         for item in connection.find_all('a', class_="external text"):
-            site = item['href']
-            self.parse_url(site)
+            self.parse_url(item['href'], wikipedia_link)
 
-    def parse_url(self, site):
+    def parse_url(self, url, wikipedia_link):
         # URLs are in the format: https://www.sitename.com/foo/
         # Splitting by . gives us: https://www . sitename . com/foo/
         # Allowing an easy way to retrieve the website name
-        site_split = site.split('.')
-        site_name = ""
-        if len(site_split) > 1:
-            site_name = site_split[1]
+        url_split = url.split('.')
+        if len(url_split) > 1:
+            url_name = url_split[1]
+            # Determine which website the url belongs to
+            if self.is_imdb(url, url_name, url_split) or self.is_metacritic(url, url_name, url_split) \
+                    or self.is_rotten_tomatoes(url, url_name, url_split):
+                return
         # An error has occurred here: The url should have been split, most likely a mistake on wikipedia
         else:
             ss = ""
-            for s in site_split:
+            for s in url_split:
                 ss = ss + s
             # Debugging code: Print the broken url
-            print("site_split: " + ss + ", site: " + site + ", Movie: " + self.wikipedia_link)
-
-            if self.is_imdb(site, site_name, site_split) or self.is_metacritic(site, site_name, site_split) \
-                    or self.is_rotten_tomatoes(site, site_name, site_split):
-                return
+            print("site_split: %s, site: %s, Movie: %s" % (ss, url, wikipedia_link))
 
     def is_imdb(self, site, site_name, site_split):
         if site_name == "imdb":
@@ -47,7 +48,7 @@ class DataContainer:
                 # Splitting by / gives us: https: / / www.imdb.com / title / ttXXXXXXX /
                 # Thus giving us the bom link by concatenating 'ttXXXXXXX' to the end of
                 # 'https://www.boxofficemojo.com/title/'
-                boxofficemojo_link = 'https://www.boxofficemojo.com/title/' + site.split('/')[4] + '/'
+                boxofficemojo_link = ''.join(['https://www.boxofficemojo.com/title/', site.split('/')[4], '/'])
                 self.boxofficemojo = BoxOfficeMojo(boxofficemojo_link)
                 return True
             else:
@@ -71,49 +72,26 @@ class DataContainer:
             else:
                 return False
 
-    # TO_DO:
-    def predict_missing_values(self):
-        if self.imdb is None:
+    def predict_missing_values(self, title):
+        if self.metacritic is None:
+            self.metacritic = Metacritic.predict_link(title)
+        return self
+
+    def find_incorrect_urls(self, title):
+        if not Metacritic.check_link(self.metacritic.link):
+            print(title)
+            self.metacritic.link = None
 
 
-class Data:
-    def __init__(self, link):
-        self.link = link
 
 
-class IMDB(Data):
-    def __init__(self, link):
-        super().__init__(link)
-
-    def predict_link(self):
 
 
-    def check_link(self, link):
-        connection = movie_lister2.open_connection(link)
-        return
-
-class Metacritic(Data):
-    def __init__(self, link):
-        super().__init__(link)
-
-    def check_link(self, link):
-        connection = movie_lister2.open_connection(link)
-        return
 
 
-class RottenTomatoes(Data):
-    def __init__(self, link):
-        super().__init__(link)
-
-    def check_link(self, link):
-        connection = movie_lister2.open_connection(link)
-        return
 
 
-class BoxOfficeMojo(Data):
-    def __init__(self, link):
-        super().__init__(link)
 
-    def check_link(self, link):
-        connection = movie_lister2.open_connection(link)
-        return
+
+
+

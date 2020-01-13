@@ -1,13 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 
+
+# Scrapes the wikipedia pages by year: Retrieving the names and wikipedia links of all films
 from movie_data import Movie
 
 
-# Scrapes the wikipedia pages by year: Retrieving the names and wikipedia links of all films
 def parse(year):
     films = {}
-    url = "https://en.wikipedia.org/wiki/" + year + "_in_film"
+    url = ''.join(['https://en.wikipedia.org/wiki/', year, '_in_film'])
     req = requests.get(url).text
     soup = BeautifulSoup(req, 'html.parser')
 
@@ -27,8 +28,6 @@ def parse(year):
                         a = i.find('a')
                         if a is not None:
                             title = a.contents[0]
-                            movie = Movie(title)
-                            movie.set_wikipedia_link('https://en.wikipedia.org' + a['href'])
-                            films[title] = movie
-
+                            url = ''.join(['https://en.wikipedia.org', a['href']])
+                            films[title] = Movie(title, url)
     return films
