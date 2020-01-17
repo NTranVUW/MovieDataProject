@@ -4,9 +4,11 @@ from bs4 import BeautifulSoup
 
 # Scrapes the wikipedia pages by year: Retrieving the names and wikipedia links of all films
 from movie_data import Movie
+from utilities import Printer
 
 
 def parse(year):
+    Printer.print_equal('SCRAPING WIKIPEDIA')
     films = {}
     url = ''.join(['https://en.wikipedia.org/wiki/', year, '_in_film'])
     req = requests.get(url).text

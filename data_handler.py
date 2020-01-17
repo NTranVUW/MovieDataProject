@@ -1,20 +1,36 @@
+import boxofficemojo_handler
+import imdb_handler
+import metacritic_handler
+import rotten_tomatoes_handler
+import utilities
 from boxofficemojo_handler import BoxOfficeMojo
 from imdb_handler import IMDB
-from metacrtic_handler import Metacritic
+from metacritic_handler import Metacritic
 from rotten_tomatoes_handler import RottenTomatoes
+from utilities import Printer
 
 
 class DataContainer:
-    def __init__(self, wikipedia_link):
+    def __init__(self, year, wikipedia_link=None, film=None):
+        self.year = year
         self.imdb = None
         self.metacritic = None
         self.rotten_tomatoes = None
         self.boxofficemojo = None
-        self.get_wikipedia_external_links(wikipedia_link)
+        if wikipedia_link is not None:
+            self.get_wikipedia_external_links(wikipedia_link)
+        if film is not None:
+            self.parse_data(film)
+
+    def parse_data(self, film):
+        self.imdb = imdb_handler.IMDB.parse(film)
+        self.metacritic = metacritic_handler.Metacritic.parse(film)
+        self.rotten_tomatoes = rotten_tomatoes_handler.RottenTomatoes.parse(film)
+        self.boxofficemojo = boxofficemojo_handler.BoxOfficeMojo.parse(film)
 
     # <a rel="nofollow" class="external text" href="https://www.sitename.com/foo/"><i>Name Of The Movie</i></a>
     def get_wikipedia_external_links(self, wikipedia_link):
-        from movie_lister import open_connection
+        from utilities import open_connection
         connection = open_connection(wikipedia_link)
         for item in connection.find_all('a', class_="external text"):
             self.parse_url(item['href'], wikipedia_link)
@@ -24,14 +40,17 @@ class DataContainer:
         # Splitting by . gives us: https://www . sitename . com/foo/
         # Allowing an easy way to retrieve the website name
         url_split = url.split('.')
-        if len(url_split) > 1:
+        if len(url_split) > 2:
+            if url_split[0] is not 'http://www':
+                url = ''.join(['http://www.', url_split[1], ".", url_split[2]])
+                url_split = url.split('.')
             url_name = url_split[1]
             # Determine which website the url belongs to
             if self.is_imdb(url, url_name, url_split) or self.is_metacritic(url, url_name, url_split) \
                     or self.is_rotten_tomatoes(url, url_name, url_split):
                 return
         # An error has occurred here: The url should have been split, most likely a mistake on wikipedia
-        else:
+        elif len(url_split) < 2:
             ss = ""
             for s in url_split:
                 ss = ss + s
@@ -43,6 +62,7 @@ class DataContainer:
             # The /title/ prefix indicates that this isn't a link to an article
             if site_split[2].startswith("com/title/"):
                 self.imdb = IMDB(site)
+                Printer.print_minus(''.join(["FOUND IMDB: ", site]))
                 # BoxOfficeMojo uses the IMDB ids for indexing: We can easily find the bom link from the imdb link
                 # IMDB links are in the format: https://www.imdb.com/title/ttXXXXXXX/
                 # Splitting by / gives us: https: / / www.imdb.com / title / ttXXXXXXX /
@@ -50,6 +70,7 @@ class DataContainer:
                 # 'https://www.boxofficemojo.com/title/'
                 boxofficemojo_link = ''.join(['https://www.boxofficemojo.com/title/', site.split('/')[4], '/'])
                 self.boxofficemojo = BoxOfficeMojo(boxofficemojo_link)
+                Printer.print_minus(''.join(["FOUND BOXOFFICEMOJO: ", boxofficemojo_link]))
                 return True
             else:
                 return False
@@ -59,6 +80,7 @@ class DataContainer:
             # The /movie/ prefix indicates that this is a link to a movie: We're only interested in movies
             if site_split[2].startswith("com/movie/"):
                 self.metacritic = Metacritic(site)
+                Printer.print_minus(''.join(["FOUND METACRITIC: ", site]))
                 return True
             else:
                 return False
@@ -68,22 +90,47 @@ class DataContainer:
             # The /m/ prefix indicates that this is a link to a movie: We're only interested in movies
             if site_split[2].startswith("com/m/"):
                 self.rotten_tomatoes = RottenTomatoes(site)
+                Printer.print_minus(''.join(["FOUND ROTTEN TOMATOES: ", site]))
                 return True
             else:
                 return False
 
     def predict_missing_values(self, title):
+        if self.imdb is None:
+            Printer.print_minus(''.join(["MISSING IMDB: ", title, " - ", self.year]))
+            self.log_missing_link(''.join([title, ": IMDB"]))
+            self.log_missing_link(''.join([title, ": Boxofficemojo"]))
         if self.metacritic is None:
-            self.metacritic = Metacritic.predict_link(title)
+            self.metacritic = Metacritic(Metacritic.predict_link(title))
+        if self.rotten_tomatoes is None:
+            self.rotten_tomatoes = RottenTomatoes(RottenTomatoes.predict_link(title, self.year))
         return self
 
     def find_incorrect_urls(self, title):
-        if not Metacritic.check_link(self.metacritic.link):
-            print(title)
-            self.metacritic.link = None
+        if self.imdb is not None:
+            if not utilities.check_link(self.imdb.link):
+                Printer.print_minus(''.join(["INCORRECT IMDB: ", title, " - ", self.year]))
+                self.log_missing_link(''.join([title, ": IMDB"]))
+                self.imdb = None
+        if self.metacritic is not None:
+            if not utilities.check_link(self.metacritic.link):
+                Printer.print_minus(''.join(["INCORRECT METACRITIC: ", title, " - ", self.year]))
+                self.log_missing_link(''.join([title, ": Metacritic"]))
+                self.metacritic = None
+        if self.rotten_tomatoes is not None:
+            if not utilities.check_link(self.rotten_tomatoes.link):
+                Printer.print_minus(''.join(["INCORRECT ROTTEN TOMATOES: ", title, " - ", self.year]))
+                self.log_missing_link(''.join([title, ": Rotten Tomatoes"]))
+                self.rotten_tomatoes = None
+        if self.boxofficemojo is not None:
+            if not utilities.check_link(self.boxofficemojo.link):
+                Printer.print_minus(''.join(["INCORRECT BOXOFFICEMOJO: ", title, " - ", self.year]))
+                self.log_missing_link(''.join([title, ": Boxofficemojo"]))
+                self.boxofficemojo = None
 
-
-
+    def log_missing_link(self, link):
+        with open(''.join(['resources//', str(self.year), '_missing_links.txt']), 'a') as txt_file:
+            txt_file.write(''.join([link, "\n"]))
 
 
 

@@ -1,13 +1,20 @@
-from urllib.request import Request
+import urllib
 
-from envs.python36.Lib import urllib
-from envs.python36.Lib.urllib.request import urlopen
 from unidecode import unidecode
+
+from utilities import Printer
 
 
 class Metacritic:
     def __init__(self, link):
         self.link = link
+
+    @staticmethod
+    def parse(film):
+        if film["Metacritic"] is not None:
+            meta = Metacritic(film["Metacritic"]['Link'])
+            return meta
+
 
     @staticmethod
     def predict_link(title):
@@ -19,7 +26,7 @@ class Metacritic:
             # Only add word if alphanumeric
             for c in word_as_list:
                 if c.isalnum():
-                    c = unidecode.unidecode(c)
+                    c = unidecode(c)
                     c = c.lower()
                     word.append(c)
             # Covert byte to string
@@ -30,14 +37,5 @@ class Metacritic:
             link = ''.join([link, word_as_string, '-']) if len(word) > 0 else ''.join([link, word_as_string])
         new_link = urllib.parse.urljoin('http://www.metacritic.com/movie/', link[:-1])
         # print(new_link)
+        Printer.print_minus(''.join(["MISSING METACRITIC: ", title, ", Predicted Link: ", new_link]))
         return new_link
-
-    @staticmethod
-    def check_link(url):
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        try:
-            urlopen(req).read()
-        except urllib.error.HTTPError as e:
-            if e.getcode() == 404:
-                return False
-        return True
