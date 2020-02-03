@@ -1,5 +1,7 @@
 import urllib
 
+import requests
+from bs4 import BeautifulSoup
 from unidecode import unidecode
 
 import utilities
@@ -43,3 +45,16 @@ class RottenTomatoes:
         # print(new_link)
         Printer.print_minus(''.join(["MISSING ROTTEN TOMATOES: ", title, ", Predicted Link: ", new_link]))
         return new_link
+
+    def check_year(self, year):
+        req = requests.get(self.link, headers={'User-Agent': 'Mozilla/5.0'}).text
+        soup = BeautifulSoup(req, 'html.parser')
+        for meta_row in soup.find_all(class_="meta-row clearfix"):
+            meta_label = meta_row.find(class_="meta-label subtle")
+            if meta_label.getText() == 'In Theaters: ':
+                datetime = meta_row.find(class_="meta-value").find('time').attrs.get('datetime')
+                y = datetime.split('-')[0]
+                if y is not None:
+                    if y != year and int(y) != int(year) - 1 and int(y) != int(year) + 1:
+                        return y
+        return None

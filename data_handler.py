@@ -1,7 +1,10 @@
+import os
+
 import boxofficemojo_handler
 import imdb_handler
 import metacritic_handler
 import rotten_tomatoes_handler
+import tmdb_handler
 import utilities
 from boxofficemojo_handler import BoxOfficeMojo
 from imdb_handler import IMDB
@@ -12,11 +15,13 @@ from utilities import Printer
 
 class DataContainer:
     def __init__(self, year, wikipedia_link=None, film=None):
+        self.film = film
         self.year = year
         self.imdb = None
         self.metacritic = None
         self.rotten_tomatoes = None
         self.boxofficemojo = None
+        self.tmdb = None
         if wikipedia_link is not None:
             self.get_wikipedia_external_links(wikipedia_link)
         if film is not None:
@@ -27,6 +32,30 @@ class DataContainer:
         self.metacritic = metacritic_handler.Metacritic.parse(film)
         self.rotten_tomatoes = rotten_tomatoes_handler.RottenTomatoes.parse(film)
         self.boxofficemojo = boxofficemojo_handler.BoxOfficeMojo.parse(film)
+        if self.imdb is not None:
+            # if film["TMDB"] is not None:
+                # self.tmdb = tmdb_handler.TMDB.parse(self.imdb.id, film=film)
+            # else:
+                self.tmdb = tmdb_handler.TMDB.parse(self.imdb.id)
+
+    # Used to find a mismatch of release year and the year displayed on the webpages
+    def print_wrong_years(self):
+        with open(''.join(['resources//', str(self.year), '_wrong_years.txt']), 'a') as txt_file:
+            if self.imdb is not None:
+                imdb_year = self.imdb.check_year(self.year)
+                if imdb_year is not None:
+                    txt_file.write(''.join([self.film["Name"], ": IMDB — ", imdb_year, " != ", self.year, "\n"]))
+
+            if self.metacritic is not None:
+                metacritic_year = self.metacritic.check_year(self.year)
+                if metacritic_year is not None:
+                    txt_file.write(''.join([self.film["Name"], ": Metacritic — ", metacritic_year, " != ",
+                                            self.year, "\n"]))
+            if self.rotten_tomatoes is not None:
+                rotten_tomatoes_year = self.rotten_tomatoes.check_year(self.year)
+                if rotten_tomatoes_year is not None:
+                    txt_file.write(''.join([self.film["Name"], ": Rotten Tomatoes — ", rotten_tomatoes_year, " != ",
+                                            self.year, "\n"]))
 
     # <a rel="nofollow" class="external text" href="https://www.sitename.com/foo/"><i>Name Of The Movie</i></a>
     def get_wikipedia_external_links(self, wikipedia_link):
@@ -102,8 +131,10 @@ class DataContainer:
             self.log_missing_link(''.join([title, ": Boxofficemojo"]))
         if self.metacritic is None:
             self.metacritic = Metacritic(Metacritic.predict_link(title))
+            self.log_predicted_link(''.join([title, ": ", self.metacritic.link]))
         if self.rotten_tomatoes is None:
             self.rotten_tomatoes = RottenTomatoes(RottenTomatoes.predict_link(title, self.year))
+            self.log_predicted_link(''.join([title, ": ", self.rotten_tomatoes.link]))
         return self
 
     def find_incorrect_urls(self, title):
@@ -132,13 +163,6 @@ class DataContainer:
         with open(''.join(['resources//', str(self.year), '_missing_links.txt']), 'a') as txt_file:
             txt_file.write(''.join([link, "\n"]))
 
-
-
-
-
-
-
-
-
-
-
+    def log_predicted_link(self, link):
+        with open(''.join(['resources//', str(self.year), '_predicted_links.txt']), 'a', encoding="utf-8") as txt_file:
+            txt_file.write(''.join([link, "\n"]))

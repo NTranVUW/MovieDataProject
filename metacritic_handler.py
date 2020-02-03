@@ -1,5 +1,7 @@
 import urllib
 
+import requests
+from bs4 import BeautifulSoup
 from unidecode import unidecode
 
 from utilities import Printer
@@ -14,7 +16,6 @@ class Metacritic:
         if film["Metacritic"] is not None:
             meta = Metacritic(film["Metacritic"]['Link'])
             return meta
-
 
     @staticmethod
     def predict_link(title):
@@ -39,3 +40,13 @@ class Metacritic:
         # print(new_link)
         Printer.print_minus(''.join(["MISSING METACRITIC: ", title, ", Predicted Link: ", new_link]))
         return new_link
+
+    def check_year(self, year):
+        req = requests.get(self.link, headers={'User-Agent': 'Mozilla/5.0'}).text
+        soup = BeautifulSoup(req, 'html.parser')
+        for release_year in soup.find_all(class_="release_year lighter"):
+            y = release_year.getText()
+            if isinstance(y, int):
+                if y != year and int(y) != int(year) - 1 and int(y) != int(year) + 1:
+                    return y
+        return None
