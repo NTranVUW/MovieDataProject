@@ -43,7 +43,7 @@ def scrape_wikipedia(url, year):
                             url = ''.join(['https://en.wikipedia.org', a['href']])
                             movies[title] = Movie(url, title, year)
 
-                            Printer.print_minus(''.join(["RETRIEVING DATA: ", str(utils.count), ". ", title]))
+                            Printer.print_minus(''.join(["RETRIEVING DATA: ", str(len(movies)), ". ", title]))
 
                             scrape_external_links(movies[title])
                             predict_missing_links(movies[title])
@@ -65,7 +65,7 @@ def scrape_external_links(movie):
                 url_split = url.split('.')
             url_name = url_split[1]
             # Determine which website the url belongs to
-            parse_url(url, url_name, url_split)
+            parse_url(url, url_name, url_split, movie)
             # An error has occurred here: The url should have been split, most likely a mistake on wikipedia
         elif len(url_split) < 2:
             ss = ""
@@ -81,13 +81,13 @@ def parse_url(url, url_name, url_split, movie):
     if url_name == 'metacritic':
         parse_metacritic(url, url_split, movie)
     if url_name == 'rottentomatoes':
-        parse_rottentomatoes()
+        parse_rottentomatoes(url, url_split, movie)
 
 
 def parse_imdb(url, url_split, movie):
     # The /title/ prefix indicates that this isn't a link to an article
     if url_split[2].startswith("com/title/"):
-        movie.imdb = IMDB(url, movie.title, movie.year)
+        movie.imdb = IMDB(url, movie.name, year=movie.year)
 
         Printer.print_minus(''.join(["FOUND IMDB: ", url]))
 
@@ -96,8 +96,8 @@ def parse_imdb(url, url_split, movie):
         # Splitting by / gives us: https: / / www.imdb.com / title / ttXXXXXXX /
         # Thus giving us the bom link by concatenating 'ttXXXXXXX' to the end of
         # 'https://www.boxofficemojo.com/title/'
-        box_office_mojo_link = ''.join(['https://www.boxofficemojo.com/title/', site.split('/')[4], '/'])
-        movie.box_office_mojo = BoxOfficeMojo(box_office_mojo_link, movie.title)
+        box_office_mojo_link = ''.join(['https://www.boxofficemojo.com/title/', url.split('/')[4], '/'])
+        movie.box_office_mojo = BoxOfficeMojo(box_office_mojo_link)
 
         Printer.print_minus(''.join(["FOUND BOXOFFICEMOJO: ", box_office_mojo_link]))
 
@@ -105,7 +105,7 @@ def parse_imdb(url, url_split, movie):
 def parse_metacritic(url, url_split, movie):
     # The /movie/ prefix indicates that this is a link to a movie: We're only interested in movies
     if url_split[2].startswith("com/movie/"):
-        movie.metacritic = Metacritic(url, movie.title, movie.year)
+        movie.metacritic = Metacritic(url, movie.name, year=movie.year)
 
         Printer.print_minus(''.join(["FOUND METACRITIC: ", url]))
 
@@ -113,26 +113,26 @@ def parse_metacritic(url, url_split, movie):
 def parse_rottentomatoes(url, url_split, movie):
     # The /m/ prefix indicates that this is a link to a movie: We're only interested in movies
     if url_split[2].startswith("com/m/"):
-        movie.rotten_tomatoes = RottenTomatoes(url, movie.title, movie.year)
+        movie.rotten_tomatoes = RottenTomatoes(url, movie.name, year=movie.year)
 
         Printer.print_minus(''.join(["FOUND ROTTEN TOMATOES: ", url]))
 
 
 def predict_missing_links(movie):
     if movie.imdb is None:
-        Printer.print_minus(''.join(["MISSING IMDB: ", movie.title, " - ", movie.year]))
+        Printer.print_minus(''.join(["MISSING IMDB: ", movie.name, " - ", movie.year]))
 
     if movie.metacritic is None:
-        movie.metacritic.link = Metacritic(predict_metacritic(movie), movie.title)
+        movie.metacritic = Metacritic(predict_metacritic(movie), movie.name, year=movie.year)
 
     if movie.rotten_tomatoes is None:
-        movie.rotten_tomatoes = RottenTomatoes(predict_rotten_tomatoes(movie), movie.title)
+        movie.rotten_tomatoes = RottenTomatoes(predict_rotten_tomatoes(movie), movie.name, year=movie.year)
 
 
 def predict_metacritic(movie):
     link = ''
-    title_split = movie.title.split()
-    for t in title_split:
+    name_split = movie.name.split()
+    for t in name_split:
         word = []
         word_as_list = list(t)
         # Only add word if alphanumeric
@@ -149,15 +149,15 @@ def predict_metacritic(movie):
         link = ''.join([link, word_as_string, '-']) if len(word) > 0 else ''.join([link, word_as_string])
     new_link = urllib.parse.urljoin('http://www.metacritic.com/movie/', link[:-1])
 
-    Printer.print_minus(''.join(["MISSING METACRITIC: ", movie.title, ", Predicted Link: ", new_link]))
+    Printer.print_minus(''.join(["MISSING METACRITIC: ", movie.name, ", Predicted Link: ", new_link]))
 
     return new_link
 
 
 def predict_rotten_tomatoes(movie):
     link = ''
-    title_split = movie.title.split()
-    for t in title_split:
+    name_split = movie.name.split()
+    for t in name_split:
         word = []
         word_as_list = list(t)
         # Only add word if alphanumeric
@@ -177,6 +177,6 @@ def predict_rotten_tomatoes(movie):
         link = ''.join([link[:-1], '_', movie.year])
         new_link = urllib.parse.urljoin('https://www.rottentomatoes.com/m/', link)
 
-    Printer.print_minus(''.join(["MISSING ROTTEN TOMATOES: ", movie.title, ", Predicted Link: ", new_link]))
+    Printer.print_minus(''.join(["MISSING ROTTEN TOMATOES: ", movie.name, ", Predicted Link: ", new_link]))
 
     return new_link

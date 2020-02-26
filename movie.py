@@ -20,11 +20,18 @@ class Movie:
 
 class IMDB:
     def __init__(self, link, title, year=None):
-        self.link = IMDB.check_url(link, title) if year is not None else self.link = link
+        self.link = link
+        self.mismatch = False
+
+        if year is not None:
+            self.link = Metacritic.check_url(link, title)
+            if self.link is not None:
+                self.mismatch = self.check_year(year)
+
         self.id = None
+
         if link is not None:
             self.id = link.split('/')[4]
-        self.mismatch = self.check_year(year) if year is not None else self.mismatch = False
 
     @staticmethod
     def check_url(link, title):
@@ -46,22 +53,18 @@ class IMDB:
 
 
 class BoxOfficeMojo:
-    def __init__(self, link, title):
-        self.link = BoxOfficeMojo.check_url(link, title)
-
-    @staticmethod
-    def check_url(link, title):
-        if not utils.check_link(link):
-            Printer.print_minus(''.join(["INCORRECT BOXOFFICEMOJO: ", title]))
-
-            return None
-        return link
+    def __init__(self, link):
+        self.link = link
 
 
 class Metacritic:
     def __init__(self, link, title, year=None):
-        self.link = Metacritic.check_url(link, title) if year is not None else self.link = link
-        self.mismatch = self.check_year(year) if year is not None else self.mismatch = False
+        self.link = link
+        self.mismatch = False
+        if year is not None:
+            self.link = Metacritic.check_url(link, title)
+            if self.link is not None:
+                self.mismatch = self.check_year(year)
 
     @staticmethod
     def check_url(link, title):
@@ -84,8 +87,12 @@ class Metacritic:
 
 class RottenTomatoes:
     def __init__(self, link, title, year=None):
-        self.link = RottenTomatoes.check_url(link, title) if year is not None else self.link = link
-        self.mismatch = self.check_year(year) if year is not None else self.mismatch = False
+        self.link = link
+        self.mismatch = False
+        if year is not None:
+            self.link = RottenTomatoes.check_url(link, title)
+            if self.link is not None:
+                self.mismatch = self.check_year(year)
 
     @staticmethod
     def check_url(link, title):
