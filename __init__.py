@@ -20,16 +20,16 @@ def check_file_exists():
 
         if os.path.isfile(file_path):
             Printer.print_equal('FILE EXISTS: Parsing Data...')
-
             data[y] = movie_parser.parse(file_path)
+
         elif os.path.isfile(tsv_path):
             Printer.print_equal('TSV EXISTS: Parsing TSV...')
-
             data[y] = movie_parser.parse_tsv(tsv_path)
         else:
             Printer.print_equal(''.join(['FILE DOES NOT EXIST: Creating ', y, ' File...']))
 
             data[y] = scraper.scrape(y)
+
             print_to_tsv(data[y], y)
 
 
@@ -130,7 +130,7 @@ def save_box_office_mojo(movie):
 if __name__ == '__main__':
     Printer.print_equal('PROGRAM START')
 
-    for i, item in enumerate(range(9)):
+    for i, item in enumerate(range(10)):
         year = ''.join(['201', str(i)])
 
         years.append(year)

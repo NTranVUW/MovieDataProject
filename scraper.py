@@ -12,9 +12,21 @@ from utils import open_connection
 
 def scrape(year):
     Printer.print_equal('RETRIEVING NEW DATA')
-
-    wiki_link = ''.join(['https://en.wikipedia.org/wiki/', year, '_in_film'])
-    return scrape_wikipedia(wiki_link, year)
+    if year == '2019':
+        movies = {}
+        req = requests.get('https://en.wikipedia.org/wiki/2019_in_film').text
+        soup = BeautifulSoup(req, 'html.parser')
+        for a in soup.find(class_='navbox-list navbox-odd hlist').findAll('a', href=True):
+            split_one = a['href'].split('/')
+            if len(split_one) > 2:
+                split_two = split_one[2].split('_')
+                if len(split_two) > 4:
+                    if (split_two[0] == 'List') & (split_two[1] == 'of') & (split_two[-1] == '2019'):
+                        movies = {**movies, **scrape_wikipedia(''.join(['https://en.wikipedia.org', a['href']]), year)}
+        return movies
+    else:
+        wiki_link = ''.join(['https://en.wikipedia.org/wiki/', year, '_in_film'])
+        return scrape_wikipedia(wiki_link, year)
 
 
 def scrape_wikipedia(url, year):
@@ -40,13 +52,14 @@ def scrape_wikipedia(url, year):
                         a = i.find('a')
                         if a is not None:
                             title = a.contents[0]
-                            url = ''.join(['https://en.wikipedia.org', a['href']])
-                            movies[title] = Movie(url, title, year)
+                            if a['href'].split('/')[2] != 'ja.wikipedia.org':
+                                url = ''.join(['https://en.wikipedia.org', a['href']])
+                                movies[title] = Movie(url, title, year)
 
-                            Printer.print_minus(''.join(["RETRIEVING DATA: ", str(len(movies)), ". ", title]))
+                                Printer.print_minus(''.join(["RETRIEVING DATA: ", str(len(movies)), ". ", title]))
 
-                            scrape_external_links(movies[title])
-                            predict_missing_links(movies[title])
+                                scrape_external_links(movies[title])
+                                predict_missing_links(movies[title])
 
     return movies
 
